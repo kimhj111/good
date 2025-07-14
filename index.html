@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>카메라 분류 앱</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background-color: #111;
+      color: white;
+    }
+    video {
+      border: 1px solid white;
+    }
+    #label-container {
+      font-size: 1.2em;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+  </style>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.9.0/dist/tf.min.js"></script>
+  <!-- Teachable Machine Image -->
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+</head>
+<body>
+  <h1>카메라 분류 앱</h1>
+  <button onclick="init()">카메라 시작</button>
+  <div id="webcam-container"></div>
+  <div id="label-container">결과 없음</div>
+
+  <script type="text/javascript">
+    const URL = "https://teachablemachine.withgoogle.com/models/O4Kie2-u-/";
+    let model, webcam, labelContainer, maxPredictions;
+
+    async function init() {
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
+
+      // 모델과 metadata 불러오기
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+
+      // 웹캠 설정
+      const flip = true; // 좌우반전
+      webcam = new tmImage.Webcam(200, 200, flip); // width, height
+      await webcam.setup(); // 사용자 카메라 접근 요청
+      await webcam.play();
+      window.requestAnimationFrame(loop);
+
+      // 화면에 비디오 표시
+      document.getElementById("webcam-container").appendChild(webcam.canvas);
+
+      // 결과를 위한 라벨
+      labelContainer = document.getElementById("label-container");
+    }
+
+    async function loop() {
+      webcam.update(); // 비디오 업데이트
+      await predict();
+      window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+      const prediction = await model.predict(webcam.canvas);
+      let result = "";
+      for (let i = 0; i < maxPredictions; i++) {
+        result += `${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(1)}%<br>`;
+      }
+      labelContainer.innerHTML = result;
+    }
+  </script>
+</body>
+</html>
+
